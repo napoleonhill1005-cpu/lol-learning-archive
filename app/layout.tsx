@@ -41,6 +41,14 @@ export default function RootLayout({
             <span className="hidden text-sm text-zinc-400 sm:inline">
               프로 솔랭 리플레이 · 챔피언/프로/패치/태그 검색
             </span>
+            <nav className="ml-auto flex gap-4 text-sm">
+              <Link href="/" className="text-zinc-300 hover:text-amber-300">
+                영상
+              </Link>
+              <Link href="/pros" className="text-zinc-300 hover:text-amber-300">
+                프로
+              </Link>
+            </nav>
           </div>
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">

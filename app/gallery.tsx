@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { type Video, thumbUrl, laneLabel, LANE_LABEL } from "@/lib/videos";
+import { matchPros, proSlug } from "@/lib/pros";
 
 const LANES = Object.keys(LANE_LABEL); // TOP/JUNGLE/MID/ADC/SUPPORT
 
@@ -93,6 +94,22 @@ export default function Gallery({
         placeholder="제목 · 프로 · 챔피언 검색 (한글/영문)"
         className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none"
       />
+
+      {/* 검색어가 프로 이름에 걸리면 프로 페이지 바로가기 */}
+      {query.trim() && matchPros(query).length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-zinc-500">프로 페이지:</span>
+          {matchPros(query).map((p) => (
+            <Link
+              key={p.proEn}
+              href={`/pro/${proSlug(p)}`}
+              className="rounded-full border border-amber-400/50 px-3 py-1 text-amber-300 transition-colors hover:bg-amber-400 hover:text-zinc-950"
+            >
+              {p.pro} ({laneLabel(p.lane)}) →
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* 필터 바 */}
       <div className="flex flex-wrap items-center gap-2">

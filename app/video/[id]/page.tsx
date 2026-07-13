@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getVideo, videos, laneLabel } from "@/lib/videos";
+import { getScenes } from "@/lib/scenes";
+import ScenePlayer from "./scene-player";
 
 export function generateStaticParams() {
   return videos.map((v) => ({ id: v.id }));
@@ -44,15 +46,11 @@ export default async function VideoPage({
         ← 목록으로
       </Link>
 
-      <div className="aspect-video w-full overflow-hidden rounded-lg border border-zinc-800">
-        <iframe
-          src={`https://www.youtube.com/embed/${video.youtubeId}`}
-          title={video.title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="h-full w-full"
-        />
-      </div>
+      <ScenePlayer
+        youtubeId={video.youtubeId}
+        title={video.title}
+        vs={getScenes(video.id)}
+      />
 
       <h1 className="text-2xl font-bold text-zinc-100">{video.title}</h1>
 

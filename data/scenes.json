@@ -1,0 +1,265 @@
+{
+  "SfMkKS0hPDo": {
+    "matchId": "KR_8294576001",
+    "gameDurationMs": 2064000,
+    "videoStartGameTimeMs": 0,
+    "scenes": [
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 236633,
+        "startMs": 221633,
+        "endMs": 251633,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "레벨업",
+        "gameTimeMs": 296614,
+        "startMs": 281614,
+        "endMs": 311614,
+        "source": "api-auto",
+        "detail": "6레벨"
+      },
+      {
+        "tagType": "오브젝트",
+        "gameTimeMs": 334074,
+        "startMs": 319074,
+        "endMs": 349074,
+        "source": "api-auto",
+        "detail": "드래곤 처치"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 403123,
+        "startMs": 388123,
+        "endMs": 418123,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 637674,
+        "startMs": 622674,
+        "endMs": 652674,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "오브젝트",
+        "gameTimeMs": 664593,
+        "startMs": 649593,
+        "endMs": 679593,
+        "source": "api-auto",
+        "detail": "드래곤 처치"
+      },
+      {
+        "tagType": "킬",
+        "gameTimeMs": 721128,
+        "startMs": 706128,
+        "endMs": 736128,
+        "source": "api-auto",
+        "detail": "챔피언 처치"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 798310,
+        "startMs": 783310,
+        "endMs": 813310,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "레벨업",
+        "gameTimeMs": 824875,
+        "startMs": 809875,
+        "endMs": 839875,
+        "source": "api-auto",
+        "detail": "11레벨"
+      },
+      {
+        "tagType": "데스",
+        "gameTimeMs": 840452,
+        "startMs": 825452,
+        "endMs": 855452,
+        "source": "api-auto",
+        "detail": "사망"
+      },
+      {
+        "tagType": "오브젝트",
+        "gameTimeMs": 980119,
+        "startMs": 965119,
+        "endMs": 995119,
+        "source": "api-auto",
+        "detail": "타워 파괴"
+      },
+      {
+        "tagType": "어시스트",
+        "gameTimeMs": 989396,
+        "startMs": 974396,
+        "endMs": 1028745,
+        "source": "api-auto",
+        "detail": "어시스트 +어시스트 +어시스트"
+      },
+      {
+        "tagType": "오브젝트",
+        "gameTimeMs": 1022913,
+        "startMs": 1007913,
+        "endMs": 1043826,
+        "source": "api-auto",
+        "detail": "드래곤 처치 +타워 파괴"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 1057398,
+        "startMs": 1042398,
+        "endMs": 1072398,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "어시스트",
+        "gameTimeMs": 1193629,
+        "startMs": 1178629,
+        "endMs": 1208629,
+        "source": "api-auto",
+        "detail": "어시스트"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 1270659,
+        "startMs": 1255659,
+        "endMs": 1285659,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "오브젝트",
+        "gameTimeMs": 1461059,
+        "startMs": 1446059,
+        "endMs": 1476059,
+        "source": "api-auto",
+        "detail": "타워 파괴"
+      },
+      {
+        "tagType": "킬",
+        "gameTimeMs": 1477724,
+        "startMs": 1462724,
+        "endMs": 1492724,
+        "source": "api-auto",
+        "detail": "챔피언 처치"
+      },
+      {
+        "tagType": "어시스트",
+        "gameTimeMs": 1494403,
+        "startMs": 1479403,
+        "endMs": 1551091,
+        "source": "api-auto",
+        "detail": "어시스트 +어시스트 +어시스트"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 1507170,
+        "startMs": 1492170,
+        "endMs": 1522170,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "오브젝트",
+        "gameTimeMs": 1529379,
+        "startMs": 1514379,
+        "endMs": 1574022,
+        "source": "api-auto",
+        "detail": "타워 파괴 +타워 파괴"
+      },
+      {
+        "tagType": "레벨업",
+        "gameTimeMs": 1566084,
+        "startMs": 1551084,
+        "endMs": 1581084,
+        "source": "api-auto",
+        "detail": "16레벨"
+      },
+      {
+        "tagType": "어시스트",
+        "gameTimeMs": 1575080,
+        "startMs": 1560080,
+        "endMs": 1590080,
+        "source": "api-auto",
+        "detail": "어시스트"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 1694623,
+        "startMs": 1679623,
+        "endMs": 1709623,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 1776011,
+        "startMs": 1761011,
+        "endMs": 1791011,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "오브젝트",
+        "gameTimeMs": 1798099,
+        "startMs": 1783099,
+        "endMs": 1813099,
+        "source": "api-auto",
+        "detail": "타워 파괴"
+      },
+      {
+        "tagType": "어시스트",
+        "gameTimeMs": 1832189,
+        "startMs": 1817189,
+        "endMs": 1847189,
+        "source": "api-auto",
+        "detail": "어시스트"
+      },
+      {
+        "tagType": "귀환",
+        "gameTimeMs": 1864323,
+        "startMs": 1849323,
+        "endMs": 1879323,
+        "source": "api-auto",
+        "detail": "귀환/상점(추정)"
+      },
+      {
+        "tagType": "어시스트",
+        "gameTimeMs": 2006954,
+        "startMs": 1991954,
+        "endMs": 2024098,
+        "source": "api-auto",
+        "detail": "어시스트 +어시스트"
+      },
+      {
+        "tagType": "킬",
+        "gameTimeMs": 2007460,
+        "startMs": 1992460,
+        "endMs": 2022460,
+        "source": "api-auto",
+        "detail": "챔피언 처치"
+      },
+      {
+        "tagType": "오브젝트",
+        "gameTimeMs": 2034041,
+        "startMs": 2019041,
+        "endMs": 2064000,
+        "source": "api-auto",
+        "detail": "타워 파괴 +타워 파괴 +타워 파괴"
+      },
+      {
+        "tagType": "데스",
+        "gameTimeMs": 2050784,
+        "startMs": 2035784,
+        "endMs": 2064000,
+        "source": "api-auto",
+        "detail": "사망"
+      }
+    ]
+  }
+}

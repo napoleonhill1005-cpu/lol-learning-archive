@@ -1,0 +1,116 @@
+[
+  {
+    "pro": "페이커",
+    "proEn": "Faker",
+    "lane": "MID",
+    "riotId": "Hide on bush#KR1",
+    "confidence": "high",
+    "alt": []
+  },
+  {
+    "pro": "도란",
+    "proEn": "Doran",
+    "lane": "TOP",
+    "riotId": "어리고싶다#KR1",
+    "confidence": "high",
+    "alt": [
+      "T1 Doran#DORAN"
+    ]
+  },
+  {
+    "pro": "제우스",
+    "proEn": "Zeus",
+    "lane": "TOP",
+    "riotId": "Zeus#glgl",
+    "confidence": "high",
+    "alt": []
+  },
+  {
+    "pro": "시우",
+    "proEn": "Siwoo",
+    "lane": "MID",
+    "riotId": "TOPKING#asd",
+    "confidence": "medium",
+    "alt": []
+  },
+  {
+    "pro": "쵸비",
+    "proEn": "Chovy",
+    "lane": "MID",
+    "riotId": "허거덩#0303",
+    "confidence": "high",
+    "alt": [
+      "Gen G chovy#KR1"
+    ]
+  },
+  {
+    "pro": "구마유시",
+    "proEn": "Gumayusi",
+    "lane": "ADC",
+    "riotId": "HLE Gumayusi#0298",
+    "confidence": "high",
+    "alt": [
+      "T1 Gumayusi#KR1"
+    ]
+  },
+  {
+    "pro": "바이퍼",
+    "proEn": "Viper",
+    "lane": "ADC",
+    "riotId": "Viper#BLG",
+    "confidence": "high",
+    "alt": []
+  },
+  {
+    "pro": "오너",
+    "proEn": "Oner",
+    "lane": "JUNGLE",
+    "riotId": "T1 Oner#KR1",
+    "confidence": "high",
+    "alt": []
+  },
+  {
+    "pro": "캐니언",
+    "proEn": "Canyon",
+    "lane": "JUNGLE",
+    "riotId": "JUGKlNG#kr",
+    "confidence": "high",
+    "alt": []
+  },
+  {
+    "pro": "제카",
+    "proEn": "Zeka",
+    "lane": "MID",
+    "riotId": "suis#kr7",
+    "confidence": "high",
+    "alt": [
+      "Kiruru#kr7"
+    ]
+  },
+  {
+    "pro": "딜라이트",
+    "proEn": "Delight",
+    "lane": "SUPPORT",
+    "riotId": "플레이리스트겨울#KR1",
+    "confidence": "high",
+    "alt": []
+  },
+  {
+    "pro": "케리아",
+    "proEn": "Keria",
+    "lane": "SUPPORT",
+    "riotId": "Keria#4111",
+    "confidence": "high",
+    "alt": []
+  },
+  {
+    "pro": "룰러",
+    "proEn": "Ruler",
+    "lane": "ADC",
+    "riotId": "귀찮게하지마#KR3",
+    "confidence": "high",
+    "alt": [
+      "Gen G Ruler#korea"
+    ]
+  }
+]
