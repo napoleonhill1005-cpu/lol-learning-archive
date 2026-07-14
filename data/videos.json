@@ -1,8 +1,8 @@
 [
   {
-    "id": "jcIR7jow0zo",
-    "youtubeId": "jcIR7jow0zo",
-    "title": "페이커 요네 미드 - 드래곤·킬 장면 (10:45~12:45)",
+    "id": "rCFPclFxwM0",
+    "youtubeId": "rCFPclFxwM0",
+    "title": "페이커 요네 미드 풀게임 - 솔로랭크",
     "pro": "Hide on bush",
     "proKr": "페이커",
     "champion": "Yone",
@@ -12,12 +12,12 @@
     "queue": "솔로랭크",
     "result": "승리",
     "kda": "3/2/11",
-    "durationMin": 2,
+    "durationMin": 34,
     "matchId": "KR_8294576001",
     "tags": [
-      "킬",
-      "오브젝트",
-      "요네"
+      "풀게임",
+      "요네",
+      "미드매치업"
     ],
     "uploadedAt": "2026-07-14"
   }
