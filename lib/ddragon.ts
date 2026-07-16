@@ -60,9 +60,10 @@ export function spellIconUrl(version: string, imageFull: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${imageFull}`;
 }
 
-export type RuneIconMaps = { perk: Record<number, string>; style: Record<number, string> };
+export type RuneInfo = { icon: string; name: string };
+export type RuneIconMaps = { perk: Record<number, RuneInfo>; style: Record<number, RuneInfo> };
 
-/** 룬 perk id(키스톤)·스타일 id(트리) → 아이콘 경로. 실패 시 빈 맵 → 렌더 생략. */
+/** 룬 perk id·스타일 id(트리) → 아이콘 경로 + 한글명. 실패 시 빈 맵 → 렌더 생략. */
 export async function runeIconMaps(): Promise<RuneIconMaps> {
   try {
     const ver = await ddragonVersion();
@@ -73,13 +74,15 @@ export async function runeIconMaps(): Promise<RuneIconMaps> {
     const styles = (await res.json()) as {
       id: number;
       icon: string;
-      slots: { runes: { id: number; icon: string }[] }[];
+      name: string;
+      slots: { runes: { id: number; icon: string; name: string }[] }[];
     }[];
-    const perk: Record<number, string> = {};
-    const style: Record<number, string> = {};
+    const perk: Record<number, RuneInfo> = {};
+    const style: Record<number, RuneInfo> = {};
     for (const s of styles) {
-      style[s.id] = s.icon;
-      for (const slot of s.slots) for (const r of slot.runes) perk[r.id] = r.icon;
+      style[s.id] = { icon: s.icon, name: s.name };
+      for (const slot of s.slots)
+        for (const r of slot.runes) perk[r.id] = { icon: r.icon, name: r.name };
     }
     return { perk, style };
   } catch {

@@ -26,6 +26,7 @@ export type ParticipantDetail = {
   champion: string;
   champLevel: number;
   teamId: number;
+  position: string; // 원본 teamPosition (라인 상대 매칭용)
   win: boolean;
   kills: number;
   deaths: number;
@@ -38,6 +39,9 @@ export type ParticipantDetail = {
   spells: [number, number];
   keystoneId: number;
   subStyleId: number;
+  primaryStyleId: number;
+  primaryPerks: number[]; // 키스톤 포함 4개
+  subPerks: number[]; // 2개
 };
 
 /** 전적 리스트 한 줄에 필요한 요약. lane 은 videos.json 과 같은 표기(TOP|JUNGLE|MID|ADC|SUPPORT). */
@@ -146,6 +150,8 @@ function toParticipant(p: Record<string, unknown>): ParticipantDetail {
   const perks = p.perks as
     | { styles?: { style?: number; selections?: { perk?: number }[] }[] }
     | undefined;
+  const primary = perks?.styles?.[0];
+  const sub = perks?.styles?.[1];
   return {
     puuid: String(p.puuid ?? ""),
     name: String(p.riotIdGameName ?? p.summonerName ?? ""),
@@ -153,6 +159,7 @@ function toParticipant(p: Record<string, unknown>): ParticipantDetail {
     champion: String(p.championName ?? ""),
     champLevel: Number(p.champLevel ?? 0),
     teamId: Number(p.teamId ?? 0),
+    position: String(p.teamPosition ?? ""),
     win: Boolean(p.win),
     kills: Number(p.kills ?? 0),
     deaths: Number(p.deaths ?? 0),
@@ -171,8 +178,11 @@ function toParticipant(p: Record<string, unknown>): ParticipantDetail {
       Number(p.item6 ?? 0),
     ],
     spells: [Number(p.summoner1Id ?? 0), Number(p.summoner2Id ?? 0)],
-    keystoneId: Number(perks?.styles?.[0]?.selections?.[0]?.perk ?? 0),
-    subStyleId: Number(perks?.styles?.[1]?.style ?? 0),
+    keystoneId: Number(primary?.selections?.[0]?.perk ?? 0),
+    subStyleId: Number(sub?.style ?? 0),
+    primaryStyleId: Number(primary?.style ?? 0),
+    primaryPerks: (primary?.selections ?? []).map((s) => Number(s.perk ?? 0)),
+    subPerks: (sub?.selections ?? []).map((s) => Number(s.perk ?? 0)),
   };
 }
 
@@ -236,4 +246,104 @@ function toSummary(matchId: string, match: unknown, puuid: string): GameSummary 
     me,
     participants,
   };
+}
+
+// ---------- 매치 타임라인 (시간대별 라인전 / 스킬 빌드 / 아이템 빌드) ----------
+
+export type LaneDiff = { minute: number; goldDiff: number; csDiff: number };
+export type ItemBuildStep = { minute: number; items: number[] };
+
+export type TimelineAnalysis = {
+  laneDiffs: LaneDiff[]; // 라인 상대 대비 (상대 없으면 빈 배열)
+  skillOrder: number[]; // 찍은 순서. 1=Q 2=W 3=E 4=R
+  itemBuild: ItemBuildStep[];
+};
+
+type TimelineFrame = {
+  participantFrames?: Record<
+    string,
+    { totalGold?: number; minionsKilled?: number; jungleMinionsKilled?: number }
+  >;
+  events?: {
+    type?: string;
+    participantId?: number;
+    skillSlot?: number;
+    itemId?: number;
+    beforeId?: number;
+    timestamp?: number;
+  }[];
+};
+
+/** 타임라인은 불변이라 강하게 캐시. 실패 시 null — 분석 섹션만 생략하고 페이지는 정상 렌더. */
+export async function getTimelineAnalysis(
+  matchId: string,
+  myPuuid: string,
+  oppPuuid: string | null,
+): Promise<TimelineAnalysis | null> {
+  const r = await riotFetch(`${REGIONAL}/lol/match/v5/matches/${matchId}/timeline`, {
+    cache: "force-cache",
+  });
+  if (!r.ok) return null;
+  try {
+    return extractTimeline(r.data, myPuuid, oppPuuid);
+  } catch {
+    return null;
+  }
+}
+
+function extractTimeline(
+  tl: unknown,
+  myPuuid: string,
+  oppPuuid: string | null,
+): TimelineAnalysis {
+  const data = tl as {
+    metadata?: { participants?: string[] };
+    info?: { frames?: TimelineFrame[] };
+  };
+  const puuids = data.metadata?.participants ?? [];
+  const frames = data.info?.frames ?? [];
+  const myId = puuids.indexOf(myPuuid) + 1;
+  const oppId = oppPuuid ? puuids.indexOf(oppPuuid) + 1 : 0;
+
+  const laneDiffs: LaneDiff[] = [];
+  if (myId > 0 && oppId > 0) {
+    for (const minute of [5, 10, 15, 20]) {
+      const pf = frames[minute]?.participantFrames;
+      const mine = pf?.[String(myId)];
+      const theirs = pf?.[String(oppId)];
+      if (!mine || !theirs) continue;
+      const csOf = (f: typeof mine) =>
+        Number(f.minionsKilled ?? 0) + Number(f.jungleMinionsKilled ?? 0);
+      laneDiffs.push({
+        minute,
+        goldDiff: Number(mine.totalGold ?? 0) - Number(theirs.totalGold ?? 0),
+        csDiff: csOf(mine) - csOf(theirs),
+      });
+    }
+  }
+
+  const skillOrder: number[] = [];
+  const purchases: { minute: number; itemId: number }[] = [];
+  for (const frame of frames) {
+    for (const e of frame.events ?? []) {
+      if (e.participantId !== myId) continue;
+      if (e.type === "SKILL_LEVEL_UP" && e.skillSlot) {
+        skillOrder.push(e.skillSlot);
+      } else if (e.type === "ITEM_PURCHASED" && e.itemId) {
+        purchases.push({ minute: Math.floor(Number(e.timestamp ?? 0) / 60000), itemId: e.itemId });
+      } else if (e.type === "ITEM_UNDO" && e.beforeId) {
+        const i = purchases.map((x) => x.itemId).lastIndexOf(e.beforeId);
+        if (i >= 0) purchases.splice(i, 1);
+      }
+    }
+  }
+
+  const itemBuild: ItemBuildStep[] = [];
+  for (const p of purchases) {
+    const last = itemBuild[itemBuild.length - 1];
+    if (last && last.minute === p.minute) last.items.push(p.itemId);
+    else itemBuild.push({ minute: p.minute, items: [p.itemId] });
+  }
+
+  return { laneDiffs, skillOrder, itemBuild };
 }

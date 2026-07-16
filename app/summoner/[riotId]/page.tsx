@@ -4,10 +4,12 @@ import {
   getAccount,
   getRank,
   getRecentGames,
+  getTimelineAnalysis,
   type GameSummary,
   type ParticipantDetail,
   type Rank,
   type RiotError,
+  type TimelineAnalysis,
 } from "@/lib/riot";
 import {
   championKoMap,
@@ -20,6 +22,7 @@ import {
   runeIconUrl,
   type RuneIconMaps,
 } from "@/lib/ddragon";
+import { aiScores, type ScoreEntry } from "@/lib/score";
 import { recommendFor } from "@/lib/recommend";
 import { laneLabel } from "@/lib/videos";
 import SearchBox from "../../search-box";
@@ -61,6 +64,14 @@ const TIER_COLOR: Record<string, string> = {
 
 const DIVISION_NUM: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4" };
 
+const SKILL_KEY: Record<number, string> = { 1: "Q", 2: "W", 3: "E", 4: "R" };
+const SKILL_COLOR: Record<number, string> = {
+  1: "text-amber-300",
+  2: "text-sky-300",
+  3: "text-emerald-300",
+  4: "text-red-400",
+};
+
 type IconContext = {
   champKo: Record<string, string>;
   ddVer: string;
@@ -86,6 +97,13 @@ function ErrorBox({ message }: { message: string }) {
         ← 홈으로
       </Link>
     </div>
+  );
+}
+
+function laneOpponent(game: GameSummary): ParticipantDetail | undefined {
+  if (!game.me.position) return undefined;
+  return game.participants.find(
+    (p) => p.teamId !== game.me.teamId && p.position === game.me.position,
   );
 }
 
@@ -116,6 +134,13 @@ export default async function SummonerPage({
   ]);
   if (!games.ok) return <ErrorBox message={ERROR_MESSAGE[games.error]} />;
 
+  // 타임라인(스킬/아이템 빌드, 시간대별 라인전)도 병렬로 — 불변 데이터라 강캐시.
+  const analyses = await Promise.all(
+    games.data.map((g) =>
+      getTimelineAnalysis(g.matchId, g.me.puuid, laneOpponent(g)?.puuid ?? null),
+    ),
+  );
+
   const ctx: IconContext = { champKo, ddVer, spells, runes };
 
   return (
@@ -130,15 +155,15 @@ export default async function SummonerPage({
         <p className="py-12 text-center text-zinc-400">최근 솔로랭크 기록이 없어요.</p>
       ) : (
         <ul className="flex flex-col gap-2.5">
-          {games.data.map((g) => (
-            <GameRow key={g.matchId} game={g} ctx={ctx} />
+          {games.data.map((g, i) => (
+            <GameRow key={g.matchId} game={g} analysis={analyses[i]} ctx={ctx} />
           ))}
         </ul>
       )}
 
       <p className="text-xs text-zinc-600">
-        게임 옆 추천은 아카이브에 있는 같은 챔피언·라인 프로 리플레이 영상이에요. 아카이브가 커질수록
-        추천이 늘어나요.
+        AI 스코어는 게임 안 10명을 KDA·딜량·킬관여·CS·시야로 상대평가한 자체 점수예요. 게임 옆
+        추천은 아카이브에 있는 같은 챔피언·라인 프로 리플레이 영상이에요.
       </p>
     </div>
   );
@@ -232,6 +257,26 @@ function ProfileHeader({
   );
 }
 
+function ScoreChip({ entry }: { entry: ScoreEntry | undefined }) {
+  if (!entry) return null;
+  const color =
+    entry.score >= 70 ? "text-amber-300" : entry.score >= 45 ? "text-sky-300" : "text-zinc-400";
+  return (
+    <span className="flex items-center gap-1">
+      <span className={`text-[11px] font-semibold ${color}`}>AI {entry.score}</span>
+      {entry.badge && (
+        <span
+          className={`rounded px-1 text-[9px] font-bold ${
+            entry.badge === "MVP" ? "bg-amber-400 text-zinc-950" : "bg-purple-400 text-zinc-950"
+          }`}
+        >
+          {entry.badge}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function ItemSlots({
   items,
   ctx,
@@ -261,8 +306,8 @@ function ItemSlots({
 }
 
 function SpellRuneColumn({ p, ctx }: { p: ParticipantDetail; ctx: IconContext }) {
-  const keystoneIcon = ctx.runes.perk[p.keystoneId];
-  const subStyleIcon = ctx.runes.style[p.subStyleId];
+  const keystone = ctx.runes.perk[p.keystoneId];
+  const subStyle = ctx.runes.style[p.subStyleId];
   return (
     <div className="flex gap-0.5">
       <div className="flex flex-col gap-0.5">
@@ -281,19 +326,25 @@ function SpellRuneColumn({ p, ctx }: { p: ParticipantDetail; ctx: IconContext })
         )}
       </div>
       <div className="flex flex-col gap-0.5">
-        {keystoneIcon ? (
+        {keystone ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={runeIconUrl(keystoneIcon)}
-            alt=""
+            src={runeIconUrl(keystone.icon)}
+            alt={keystone.name}
+            title={keystone.name}
             className="h-[22px] w-[22px] rounded-full bg-zinc-800"
           />
         ) : (
           <span className="h-[22px] w-[22px] rounded-full bg-zinc-800/70" />
         )}
-        {subStyleIcon ? (
+        {subStyle ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={runeIconUrl(subStyleIcon)} alt="" className="h-[22px] w-[22px] p-0.5" />
+          <img
+            src={runeIconUrl(subStyle.icon)}
+            alt={subStyle.name}
+            title={subStyle.name}
+            className="h-[22px] w-[22px] p-0.5"
+          />
         ) : (
           <span className="h-[22px] w-[22px] rounded-full bg-zinc-800/70" />
         )}
@@ -307,13 +358,22 @@ function summonerHref(p: ParticipantDetail): string | null {
   return `/summoner/${encodeURIComponent(`${p.name}#${p.tag}`)}`;
 }
 
-function GameRow({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
+function GameRow({
+  game,
+  analysis,
+  ctx,
+}: {
+  game: GameSummary;
+  analysis: TimelineAnalysis | null;
+  ctx: IconContext;
+}) {
   const recs = recommendFor(game.champion, game.lane).slice(0, 2);
   const champName = ctx.champKo[game.champion] ?? game.champion;
   const ratio =
     game.deaths === 0 ? "Perfect" : ((game.kills + game.assists) / game.deaths).toFixed(2);
   const team100 = game.participants.filter((p) => p.teamId === 100);
   const team200 = game.participants.filter((p) => p.teamId === 200);
+  const scores = aiScores(game.participants, game.durationMin);
 
   return (
     <li
@@ -322,7 +382,7 @@ function GameRow({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
       }`}
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3">
-        <div className="flex w-16 flex-col">
+        <div className="flex w-20 flex-col gap-0.5">
           <span className={`text-sm font-semibold ${game.win ? "text-sky-400" : "text-red-400"}`}>
             {game.win ? "승리" : "패배"}
           </span>
@@ -330,6 +390,7 @@ function GameRow({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
           <span className="text-xs text-zinc-600" title={`${game.endedAt} · ${game.patch}`}>
             {game.endedRelative}
           </span>
+          <ScoreChip entry={scores[game.me.puuid]} />
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -429,13 +490,22 @@ function GameRow({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
           <span className="group-open:hidden">상세 보기 ▾</span>
           <span className="hidden group-open:inline">접기 ▴</span>
         </summary>
-        <Scoreboard game={game} ctx={ctx} />
+        <Scoreboard game={game} scores={scores} ctx={ctx} />
+        <AnalysisBlocks game={game} analysis={analysis} ctx={ctx} />
       </details>
     </li>
   );
 }
 
-function Scoreboard({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
+function Scoreboard({
+  game,
+  scores,
+  ctx,
+}: {
+  game: GameSummary;
+  scores: Record<string, ScoreEntry>;
+  ctx: IconContext;
+}) {
   const maxDamage = Math.max(...game.participants.map((p) => p.damage), 1);
   const teams = [
     { id: 100, label: "블루팀" },
@@ -449,7 +519,7 @@ function Scoreboard({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
         const win = members[0]?.win ?? false;
         return (
           <div key={t.id} className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-xs">
+            <table className="w-full min-w-[700px] text-xs">
               <thead>
                 <tr className="text-left text-zinc-500">
                   <th className="pb-1 font-normal">
@@ -457,6 +527,7 @@ function Scoreboard({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
                       {t.label} · {win ? "승리" : "패배"}
                     </span>
                   </th>
+                  <th className="pb-1 font-normal">AI</th>
                   <th className="pb-1 font-normal">KDA</th>
                   <th className="pb-1 font-normal">피해량</th>
                   <th className="pb-1 font-normal">골드</th>
@@ -498,6 +569,9 @@ function Scoreboard({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
                           )}
                         </span>
                       </td>
+                      <td className="py-1 pr-2">
+                        <ScoreChip entry={scores[p.puuid]} />
+                      </td>
                       <td className="py-1 pr-2 whitespace-nowrap text-zinc-300">
                         {p.kills}/<span className="text-red-400">{p.deaths}</span>/{p.assists}
                       </td>
@@ -530,6 +604,175 @@ function Scoreboard({ game, ctx }: { game: GameSummary; ctx: IconContext }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function AnalysisBlocks({
+  game,
+  analysis,
+  ctx,
+}: {
+  game: GameSummary;
+  analysis: TimelineAnalysis | null;
+  ctx: IconContext;
+}) {
+  const opp = laneOpponent(game);
+  const primaryStyle = ctx.runes.style[game.me.primaryStyleId];
+  const hasRunes = game.me.primaryPerks.length > 0 && Object.keys(ctx.runes.perk).length > 0;
+
+  return (
+    <div className="grid gap-x-8 gap-y-4 border-t border-zinc-800/70 px-3 py-3 sm:grid-cols-2">
+      {hasRunes && (
+        <section>
+          <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            룬 빌드
+          </h3>
+          <div className="flex flex-wrap gap-x-8 gap-y-2">
+            <div className="flex flex-col gap-1">
+              {primaryStyle && (
+                <span className="mb-0.5 text-[11px] text-zinc-500">{primaryStyle.name}</span>
+              )}
+              {game.me.primaryPerks.map((id, i) => {
+                const rune = ctx.runes.perk[id];
+                if (!rune) return null;
+                return (
+                  <span key={i} className="flex items-center gap-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={runeIconUrl(rune.icon)}
+                      alt=""
+                      className={i === 0 ? "h-6 w-6 rounded-full bg-zinc-800" : "h-5 w-5"}
+                    />
+                    <span className={`text-xs ${i === 0 ? "text-zinc-200" : "text-zinc-400"}`}>
+                      {rune.name}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+            <div className="flex flex-col gap-1">
+              {ctx.runes.style[game.me.subStyleId] && (
+                <span className="mb-0.5 text-[11px] text-zinc-500">
+                  {ctx.runes.style[game.me.subStyleId].name}
+                </span>
+              )}
+              {game.me.subPerks.map((id, i) => {
+                const rune = ctx.runes.perk[id];
+                if (!rune) return null;
+                return (
+                  <span key={i} className="flex items-center gap-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={runeIconUrl(rune.icon)} alt="" className="h-5 w-5" />
+                    <span className="text-xs text-zinc-400">{rune.name}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {analysis && analysis.laneDiffs.length > 0 && (
+        <section>
+          <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            시간대별 라인전{" "}
+            {opp && (
+              <span className="normal-case text-zinc-600">
+                (vs {ctx.champKo[opp.champion] ?? opp.champion})
+              </span>
+            )}
+          </h3>
+          <table className="w-full max-w-64 text-xs">
+            <thead>
+              <tr className="text-zinc-500">
+                <th className="text-left font-normal">시점</th>
+                <th className="text-right font-normal">골드 차이</th>
+                <th className="text-right font-normal">CS 차이</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.laneDiffs.map((d) => (
+                <tr key={d.minute}>
+                  <td className="py-0.5 text-zinc-400">{d.minute}분</td>
+                  <td
+                    className={`py-0.5 text-right ${
+                      d.goldDiff >= 0 ? "text-sky-400" : "text-red-400"
+                    }`}
+                  >
+                    {d.goldDiff >= 0 ? "+" : ""}
+                    {d.goldDiff.toLocaleString()}
+                  </td>
+                  <td
+                    className={`py-0.5 text-right ${
+                      d.csDiff >= 0 ? "text-sky-400" : "text-red-400"
+                    }`}
+                  >
+                    {d.csDiff >= 0 ? "+" : ""}
+                    {d.csDiff}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {analysis && analysis.skillOrder.length > 0 && (
+        <section>
+          <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            스킬 빌드
+          </h3>
+          <div className="flex flex-wrap gap-0.5">
+            {analysis.skillOrder.map((slot, i) => (
+              <span
+                key={i}
+                className="flex h-9 w-6 flex-col items-center justify-center rounded bg-zinc-800"
+              >
+                <span className="text-[9px] leading-tight text-zinc-500">{i + 1}</span>
+                <span
+                  className={`text-[11px] font-bold leading-tight ${
+                    SKILL_COLOR[slot] ?? "text-zinc-300"
+                  }`}
+                >
+                  {SKILL_KEY[slot] ?? "?"}
+                </span>
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {analysis && analysis.itemBuild.length > 0 && (
+        <section className="sm:col-span-2">
+          <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            아이템 빌드
+          </h3>
+          <div className="flex flex-wrap items-start gap-y-2">
+            {analysis.itemBuild.map((step, i) => (
+              <span key={i} className="flex items-start">
+                <span className="flex flex-col items-center gap-0.5">
+                  <span className="flex flex-wrap gap-0.5">
+                    {step.items.map((id, j) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={j}
+                        src={itemIconUrl(ctx.ddVer, id)}
+                        alt=""
+                        className="h-[22px] w-[22px] rounded bg-zinc-800"
+                      />
+                    ))}
+                  </span>
+                  <span className="text-[10px] text-zinc-600">{step.minute}분</span>
+                </span>
+                {i < analysis.itemBuild.length - 1 && (
+                  <span className="mx-1 mt-1 text-zinc-700">›</span>
+                )}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
