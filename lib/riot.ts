@@ -1,6 +1,8 @@
 // 서버 전용 Riot API 클라이언트. RIOT_API_KEY 환경변수 사용 — 클라이언트 컴포넌트에서 import 금지.
 // KR 고정: account-v1 / match-v5 는 regional(asia), league-v4 는 platform(kr) 라우팅.
 
+import { unstable_cache } from "next/cache";
+
 const REGIONAL = "https://asia.api.riotgames.com";
 const PLATFORM = "https://kr.api.riotgames.com";
 const QUEUE_RANKED_SOLO = 420;
@@ -274,18 +276,29 @@ type TimelineFrame = {
   }[];
 };
 
-/** 타임라인은 불변이라 강하게 캐시. 실패 시 null — 분석 섹션만 생략하고 페이지는 정상 렌더. */
+// 타임라인 원본은 1~3MB라 Next 데이터 캐시(항목당 2MB, Vercel)에 못 들어간다.
+// → fetch 는 no-store 로 받고, 추출한 분석 결과(수 KB)만 unstable_cache 로 저장.
+// 실패 시엔 throw 해서 캐시에 남기지 않는다(다음 요청에서 재시도).
+const cachedTimelineAnalysis = unstable_cache(
+  async (matchId: string, myPuuid: string, oppPuuid: string | null): Promise<TimelineAnalysis> => {
+    const r = await riotFetch(`${REGIONAL}/lol/match/v5/matches/${matchId}/timeline`, {
+      cache: "no-store",
+    });
+    if (!r.ok) throw new Error(r.error);
+    return extractTimeline(r.data, myPuuid, oppPuuid);
+  },
+  ["timeline-analysis-v1"],
+  { revalidate: 60 * 60 * 24 * 30 },
+);
+
+/** 실패 시 null — 분석 섹션만 생략하고 페이지는 정상 렌더. */
 export async function getTimelineAnalysis(
   matchId: string,
   myPuuid: string,
   oppPuuid: string | null,
 ): Promise<TimelineAnalysis | null> {
-  const r = await riotFetch(`${REGIONAL}/lol/match/v5/matches/${matchId}/timeline`, {
-    cache: "force-cache",
-  });
-  if (!r.ok) return null;
   try {
-    return extractTimeline(r.data, myPuuid, oppPuuid);
+    return await cachedTimelineAnalysis(matchId, myPuuid, oppPuuid);
   } catch {
     return null;
   }
