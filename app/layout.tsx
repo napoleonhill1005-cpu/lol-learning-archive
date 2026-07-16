@@ -54,8 +54,14 @@ export default function RootLayout({
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
           {children}
         </main>
-        <footer className="border-t border-zinc-800 py-6 text-center text-xs text-zinc-500">
-          롤 학습 아카이브 — 프로게이머 솔로랭크 리플레이 학습용 비공식 아카이브
+        <footer className="flex flex-col gap-2 border-t border-zinc-800 px-4 py-6 text-center text-xs text-zinc-500">
+          <p>롤 학습 아카이브 — 프로게이머 솔로랭크 리플레이 학습용 비공식 아카이브</p>
+          <p className="mx-auto max-w-3xl text-zinc-600">
+            LoL Learning Archive isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the
+            views or opinions of Riot Games or anyone officially involved in producing or managing
+            Riot Games properties. Riot Games, and all associated properties are trademarks or
+            registered trademarks of Riot Games, Inc.
+          </p>
         </footer>
       </body>
     </html>
