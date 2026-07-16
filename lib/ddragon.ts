@@ -1,4 +1,4 @@
-// Data Dragon (키 불필요, 하루 캐시): 챔피언 한글명 + 아이콘 URL.
+// Data Dragon (키 불필요, 하루 캐시): 챔피언 한글명 + 챔피언/아이템/스펠/룬 아이콘 URL.
 
 const FALLBACK_VERSION = "16.13.1";
 
@@ -31,4 +31,63 @@ export async function championKoMap(): Promise<Record<string, string>> {
 
 export function championIconUrl(version: string, champion: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion}.png`;
+}
+
+export function itemIconUrl(version: string, itemId: number): string {
+  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
+}
+
+/** 소환사 주문 id(숫자) → 아이콘 파일명 (예: 4 → SummonerFlash.png). 실패 시 빈 맵 → 렌더 생략. */
+export async function spellIconMap(): Promise<Record<number, string>> {
+  try {
+    const ver = await ddragonVersion();
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${ver}/data/ko_KR/summoner.json`,
+      { next: { revalidate: 86400 } },
+    );
+    const data = (await res.json()) as {
+      data: Record<string, { key: string; image: { full: string } }>;
+    };
+    return Object.fromEntries(
+      Object.values(data.data).map((s) => [Number(s.key), s.image.full]),
+    );
+  } catch {
+    return {};
+  }
+}
+
+export function spellIconUrl(version: string, imageFull: string): string {
+  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${imageFull}`;
+}
+
+export type RuneIconMaps = { perk: Record<number, string>; style: Record<number, string> };
+
+/** 룬 perk id(키스톤)·스타일 id(트리) → 아이콘 경로. 실패 시 빈 맵 → 렌더 생략. */
+export async function runeIconMaps(): Promise<RuneIconMaps> {
+  try {
+    const ver = await ddragonVersion();
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${ver}/data/ko_KR/runesReforged.json`,
+      { next: { revalidate: 86400 } },
+    );
+    const styles = (await res.json()) as {
+      id: number;
+      icon: string;
+      slots: { runes: { id: number; icon: string }[] }[];
+    }[];
+    const perk: Record<number, string> = {};
+    const style: Record<number, string> = {};
+    for (const s of styles) {
+      style[s.id] = s.icon;
+      for (const slot of s.slots) for (const r of slot.runes) perk[r.id] = r.icon;
+    }
+    return { perk, style };
+  } catch {
+    return { perk: {}, style: {} };
+  }
+}
+
+/** 룬 아이콘은 버전 경로 없이 cdn/img/ 밑에 있다. */
+export function runeIconUrl(iconPath: string): string {
+  return `https://ddragon.leagueoflegends.com/cdn/img/${iconPath}`;
 }

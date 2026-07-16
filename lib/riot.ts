@@ -1,12 +1,44 @@
 // 서버 전용 Riot API 클라이언트. RIOT_API_KEY 환경변수 사용 — 클라이언트 컴포넌트에서 import 금지.
-// KR 고정: account-v1 / match-v5 는 regional(asia) 라우팅.
+// KR 고정: account-v1 / match-v5 는 regional(asia), league-v4 는 platform(kr) 라우팅.
 
 const REGIONAL = "https://asia.api.riotgames.com";
+const PLATFORM = "https://kr.api.riotgames.com";
 const QUEUE_RANKED_SOLO = 420;
 
 export type RiotError = "not_found" | "key_expired" | "rate_limited" | "unavailable";
 
 export type Account = { puuid: string; gameName: string; tagLine: string };
+
+/** 솔로랭크 티어. division 은 I~IV (마스터 이상은 의미 없음). */
+export type Rank = {
+  tier: string;
+  division: string;
+  lp: number;
+  wins: number;
+  losses: number;
+};
+
+/** 스코어보드/명단에 쓰는 참가자 1명 상세. items 는 7칸(장신구 마지막), 0 = 빈 슬롯. */
+export type ParticipantDetail = {
+  puuid: string;
+  name: string;
+  tag: string;
+  champion: string;
+  champLevel: number;
+  teamId: number;
+  win: boolean;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  gold: number;
+  damage: number;
+  visionScore: number;
+  items: number[];
+  spells: [number, number];
+  keystoneId: number;
+  subStyleId: number;
+};
 
 /** 전적 리스트 한 줄에 필요한 요약. lane 은 videos.json 과 같은 표기(TOP|JUNGLE|MID|ADC|SUPPORT). */
 export type GameSummary = {
@@ -21,7 +53,15 @@ export type GameSummary = {
   csPerMin: number;
   durationMin: number;
   endedAt: string;
+  endedRelative: string;
   patch: string;
+  killParticipation: number; // 0~100 (%)
+  visionScore: number;
+  controlWards: number;
+  gold: number;
+  damage: number;
+  me: ParticipantDetail;
+  participants: ParticipantDetail[];
 };
 
 export type RiotResult<T> = { ok: true; data: T } | { ok: false; error: RiotError };
@@ -35,14 +75,14 @@ const POS_TO_LANE: Record<string, string> = {
 };
 
 async function riotFetch(
-  path: string,
+  url: string,
   init: RequestInit & { next?: { revalidate: number } },
 ): Promise<RiotResult<unknown>> {
   const key = process.env.RIOT_API_KEY;
   if (!key) return { ok: false, error: "key_expired" };
   let res: Response;
   try {
-    res = await fetch(`${REGIONAL}${path}`, {
+    res = await fetch(url, {
       ...init,
       headers: { "X-Riot-Token": key },
     });
@@ -58,23 +98,43 @@ async function riotFetch(
 
 export async function getAccount(gameName: string, tagLine: string): Promise<RiotResult<Account>> {
   const r = await riotFetch(
-    `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
+    `${REGIONAL}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
     { next: { revalidate: 3600 } },
   );
   return r as RiotResult<Account>;
 }
 
+/** 솔로랭크 티어. 실패/언랭이면 null — 페이지는 티어 없이도 정상 렌더해야 한다. */
+export async function getRank(puuid: string): Promise<Rank | null> {
+  const r = await riotFetch(`${PLATFORM}/lol/league/v4/entries/by-puuid/${puuid}`, {
+    next: { revalidate: 300 },
+  });
+  if (!r.ok) return null;
+  const entries = r.data as Record<string, unknown>[];
+  const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
+  if (!solo) return null;
+  return {
+    tier: String(solo.tier ?? ""),
+    division: String(solo.rank ?? ""),
+    lp: Number(solo.leaguePoints ?? 0),
+    wins: Number(solo.wins ?? 0),
+    losses: Number(solo.losses ?? 0),
+  };
+}
+
 /** 최근 솔로랭크 게임 요약 목록. 매치 상세는 불변이라 강하게 캐시한다. */
 export async function getRecentGames(puuid: string, count = 10): Promise<RiotResult<GameSummary[]>> {
   const ids = await riotFetch(
-    `/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}&queue=${QUEUE_RANKED_SOLO}`,
+    `${REGIONAL}/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}&queue=${QUEUE_RANKED_SOLO}`,
     { next: { revalidate: 120 } },
   );
   if (!ids.ok) return ids;
 
   const games = await Promise.all(
     (ids.data as string[]).map(async (matchId) => {
-      const m = await riotFetch(`/lol/match/v5/matches/${matchId}`, { cache: "force-cache" });
+      const m = await riotFetch(`${REGIONAL}/lol/match/v5/matches/${matchId}`, {
+        cache: "force-cache",
+      });
       if (!m.ok) return null;
       return toSummary(matchId, m.data, puuid);
     }),
@@ -82,15 +142,61 @@ export async function getRecentGames(puuid: string, count = 10): Promise<RiotRes
   return { ok: true, data: games.filter((g): g is GameSummary => g !== null) };
 }
 
+function toParticipant(p: Record<string, unknown>): ParticipantDetail {
+  const perks = p.perks as
+    | { styles?: { style?: number; selections?: { perk?: number }[] }[] }
+    | undefined;
+  return {
+    puuid: String(p.puuid ?? ""),
+    name: String(p.riotIdGameName ?? p.summonerName ?? ""),
+    tag: String(p.riotIdTagline ?? ""),
+    champion: String(p.championName ?? ""),
+    champLevel: Number(p.champLevel ?? 0),
+    teamId: Number(p.teamId ?? 0),
+    win: Boolean(p.win),
+    kills: Number(p.kills ?? 0),
+    deaths: Number(p.deaths ?? 0),
+    assists: Number(p.assists ?? 0),
+    cs: Number(p.totalMinionsKilled ?? 0) + Number(p.neutralMinionsKilled ?? 0),
+    gold: Number(p.goldEarned ?? 0),
+    damage: Number(p.totalDamageDealtToChampions ?? 0),
+    visionScore: Number(p.visionScore ?? 0),
+    items: [
+      Number(p.item0 ?? 0),
+      Number(p.item1 ?? 0),
+      Number(p.item2 ?? 0),
+      Number(p.item3 ?? 0),
+      Number(p.item4 ?? 0),
+      Number(p.item5 ?? 0),
+      Number(p.item6 ?? 0),
+    ],
+    spells: [Number(p.summoner1Id ?? 0), Number(p.summoner2Id ?? 0)],
+    keystoneId: Number(perks?.styles?.[0]?.selections?.[0]?.perk ?? 0),
+    subStyleId: Number(perks?.styles?.[1]?.style ?? 0),
+  };
+}
+
+function relativeTime(ts: number): string {
+  const diffMin = Math.floor((Date.now() - ts) / 60000);
+  if (diffMin < 1) return "방금 전";
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const hours = Math.floor(diffMin / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
+}
+
 function toSummary(matchId: string, match: unknown, puuid: string): GameSummary | null {
   const info = (match as { info: Record<string, unknown> }).info;
-  const participants = info.participants as Record<string, unknown>[];
-  const p = participants.find((x) => x.puuid === puuid);
-  if (!p) return null;
+  const rawParticipants = info.participants as Record<string, unknown>[];
+  const raw = rawParticipants.find((x) => x.puuid === puuid);
+  if (!raw) return null;
+
+  const participants = rawParticipants.map(toParticipant);
+  const me = participants.find((x) => x.puuid === puuid)!;
 
   const durationSec = Number(info.gameDuration ?? 0);
-  const cs = Number(p.totalMinionsKilled ?? 0) + Number(p.neutralMinionsKilled ?? 0);
-  const endedAt = new Date(Number(info.gameEndTimestamp ?? 0)).toLocaleString("ko-KR", {
+  const endTs = Number(info.gameEndTimestamp ?? 0);
+  const endedAt = new Date(endTs).toLocaleString("ko-KR", {
     timeZone: "Asia/Seoul",
     month: "numeric",
     day: "numeric",
@@ -98,18 +204,36 @@ function toSummary(matchId: string, match: unknown, puuid: string): GameSummary 
     minute: "2-digit",
   });
 
+  // 킬관여: challenges 값(0~1) 우선, 없으면 팀 킬 합으로 계산.
+  const challenges = raw.challenges as Record<string, unknown> | undefined;
+  let kp = Number(challenges?.killParticipation ?? NaN);
+  if (!Number.isFinite(kp)) {
+    const teamKills = participants
+      .filter((x) => x.teamId === me.teamId)
+      .reduce((sum, x) => sum + x.kills, 0);
+    kp = teamKills > 0 ? (me.kills + me.assists) / teamKills : 0;
+  }
+
   return {
     matchId,
-    champion: String(p.championName ?? ""),
-    lane: POS_TO_LANE[String(p.teamPosition ?? "")] ?? String(p.teamPosition ?? ""),
-    win: Boolean(p.win),
-    kills: Number(p.kills ?? 0),
-    deaths: Number(p.deaths ?? 0),
-    assists: Number(p.assists ?? 0),
-    cs,
-    csPerMin: durationSec > 0 ? Math.round((cs / (durationSec / 60)) * 10) / 10 : 0,
+    champion: me.champion,
+    lane: POS_TO_LANE[String(raw.teamPosition ?? "")] ?? String(raw.teamPosition ?? ""),
+    win: me.win,
+    kills: me.kills,
+    deaths: me.deaths,
+    assists: me.assists,
+    cs: me.cs,
+    csPerMin: durationSec > 0 ? Math.round((me.cs / (durationSec / 60)) * 10) / 10 : 0,
     durationMin: Math.round(durationSec / 60),
     endedAt,
+    endedRelative: relativeTime(endTs),
     patch: String(info.gameVersion ?? "").split(".").slice(0, 2).join("."),
+    killParticipation: Math.round(kp * 100),
+    visionScore: me.visionScore,
+    controlWards: Number(raw.visionWardsBoughtInGame ?? 0),
+    gold: me.gold,
+    damage: me.damage,
+    me,
+    participants,
   };
 }
