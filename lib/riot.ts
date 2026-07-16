@@ -300,7 +300,8 @@ export async function getTimelineAnalysis(
 ): Promise<TimelineAnalysis | null> {
   try {
     return await cachedTimelineAnalysis(matchId, myPuuid, oppPuuid);
-  } catch {
+  } catch (e) {
+    console.error("timeline analysis failed", matchId, e);
     return null;
   }
 }
