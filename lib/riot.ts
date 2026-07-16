@@ -278,6 +278,7 @@ type TimelineFrame = {
 
 // 타임라인 원본은 1~3MB라 Next 데이터 캐시(항목당 2MB, Vercel)에 못 들어간다.
 // → fetch 는 no-store 로 받고, 추출한 분석 결과(수 KB)만 unstable_cache 로 저장.
+// 끝난 게임의 불변 데이터라 무기한 캐시(revalidate: false).
 // 실패 시엔 throw 해서 캐시에 남기지 않는다(다음 요청에서 재시도).
 const cachedTimelineAnalysis = unstable_cache(
   async (matchId: string, myPuuid: string, oppPuuid: string | null): Promise<TimelineAnalysis> => {
@@ -288,7 +289,7 @@ const cachedTimelineAnalysis = unstable_cache(
     return extractTimeline(r.data, myPuuid, oppPuuid);
   },
   ["timeline-analysis-v1"],
-  { revalidate: 60 * 60 * 24 * 30 },
+  { revalidate: false },
 );
 
 /** 실패 시 null — 분석 섹션만 생략하고 페이지는 정상 렌더. */
