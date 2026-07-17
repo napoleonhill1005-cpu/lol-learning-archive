@@ -5,7 +5,8 @@
     "lane": "MID",
     "riotId": "Hide on bush#KR1",
     "confidence": "high",
-    "alt": []
+    "alt": [],
+    "realName": "이상혁"
   },
   {
     "pro": "도란",
@@ -15,7 +16,8 @@
     "confidence": "high",
     "alt": [
       "T1 Doran#DORAN"
-    ]
+    ],
+    "realName": "최현준"
   },
   {
     "pro": "제우스",
@@ -23,7 +25,8 @@
     "lane": "TOP",
     "riotId": "Zeus#glgl",
     "confidence": "high",
-    "alt": []
+    "alt": [],
+    "realName": "최우제"
   },
   {
     "pro": "시우",
@@ -41,7 +44,8 @@
     "confidence": "high",
     "alt": [
       "Gen G chovy#KR1"
-    ]
+    ],
+    "realName": "정지훈"
   },
   {
     "pro": "구마유시",
@@ -51,7 +55,8 @@
     "confidence": "high",
     "alt": [
       "T1 Gumayusi#KR1"
-    ]
+    ],
+    "realName": "이민형"
   },
   {
     "pro": "바이퍼",
@@ -59,7 +64,8 @@
     "lane": "ADC",
     "riotId": "Viper#BLG",
     "confidence": "high",
-    "alt": []
+    "alt": [],
+    "realName": "박도현"
   },
   {
     "pro": "오너",
@@ -67,7 +73,8 @@
     "lane": "JUNGLE",
     "riotId": "T1 Oner#KR1",
     "confidence": "high",
-    "alt": []
+    "alt": [],
+    "realName": "문현준"
   },
   {
     "pro": "캐니언",
@@ -75,7 +82,8 @@
     "lane": "JUNGLE",
     "riotId": "JUGKlNG#kr",
     "confidence": "high",
-    "alt": []
+    "alt": [],
+    "realName": "김건부"
   },
   {
     "pro": "제카",
@@ -85,7 +93,8 @@
     "confidence": "high",
     "alt": [
       "Kiruru#kr7"
-    ]
+    ],
+    "realName": "김건우"
   },
   {
     "pro": "딜라이트",
@@ -93,7 +102,8 @@
     "lane": "SUPPORT",
     "riotId": "플레이리스트겨울#KR1",
     "confidence": "high",
-    "alt": []
+    "alt": [],
+    "realName": "유환중"
   },
   {
     "pro": "케리아",
@@ -101,7 +111,8 @@
     "lane": "SUPPORT",
     "riotId": "Keria#4111",
     "confidence": "high",
-    "alt": []
+    "alt": [],
+    "realName": "류민석"
   },
   {
     "pro": "룰러",
@@ -111,6 +122,7 @@
     "confidence": "high",
     "alt": [
       "Gen G Ruler#korea"
-    ]
+    ],
+    "realName": "박재혁"
   }
 ]

@@ -25,7 +25,10 @@ import {
 import { aiScores, type ScoreEntry } from "@/lib/score";
 import { recommendFor } from "@/lib/recommend";
 import { laneLabel } from "@/lib/videos";
+import { resolveProByName } from "@/lib/pros";
+import { redirect } from "next/navigation";
 import SearchBox from "../../search-box";
+import { RecordVisit, FavoriteButton } from "./visit-tools";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +119,12 @@ export default async function SummonerPage({
   const decoded = decodeURIComponent(riotId);
   const hash = decoded.lastIndexOf("#");
   if (hash <= 0 || hash === decoded.length - 1) {
-    return <ErrorBox message="주소 형식이 잘못됐어요. 이름#태그로 검색해주세요." />;
+    // 태그 없는 검색어는 프로 이름(활동명/영문/본명)으로 시도 — 걸리면 그 계정으로
+    const pro = resolveProByName(decoded);
+    if (pro) redirect(`/summoner/${encodeURIComponent(pro.riotId)}`);
+    return (
+      <ErrorBox message="이름#태그 형식으로 검색해주세요. 프로게이머는 이름만으로도 검색돼요 (예: 페이커, 이상혁, Faker)." />
+    );
   }
   const gameName = decoded.slice(0, hash).trim();
   const tagLine = decoded.slice(hash + 1).trim();
@@ -145,6 +153,7 @@ export default async function SummonerPage({
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5">
+      <RecordVisit id={`${account.data.gameName}#${account.data.tagLine}`} />
       <Link href="/" className="text-sm text-amber-400 hover:underline">
         ← 홈으로
       </Link>
@@ -207,6 +216,7 @@ function ProfileHeader({
           {account.gameName}
           <span className="text-zinc-500">#{account.tagLine}</span>
         </h1>
+        <FavoriteButton id={`${account.gameName}#${account.tagLine}`} />
         {rank ? (
           <span className="text-sm">
             <span className={`font-semibold ${TIER_COLOR[rank.tier] ?? "text-zinc-300"}`}>

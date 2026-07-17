@@ -11,7 +11,7 @@ import {
   type TimelineAnalysis,
 } from "@/lib/riot";
 import { championIconUrl, championKoMap, ddragonVersion } from "@/lib/ddragon";
-import { pros, proSlug, getPro, type Pro } from "@/lib/pros";
+import { pros, proSlug, getPro, resolveProByName, type Pro } from "@/lib/pros";
 import { laneLabel } from "@/lib/videos";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +92,13 @@ function sideStats(games: GameSummary[], analyses: (TimelineAnalysis | null)[]):
 type SideResult = { error: RiotError } | { account: Account; stats: SideStats };
 
 async function loadSide(riotId: string): Promise<SideResult> {
-  const [gameName, tagLine] = riotId.split("#");
+  // 태그 없는 입력은 프로 이름(활동명/영문/본명)으로 시도
+  let id = riotId;
+  if (!id.includes("#")) {
+    const p = resolveProByName(id);
+    if (p) id = p.riotId;
+  }
+  const [gameName, tagLine] = id.split("#");
   if (!gameName?.trim() || !tagLine?.trim()) return { error: "not_found" };
   const account = await getAccount(gameName.trim(), tagLine.trim());
   if (!account.ok) return { error: account.error };

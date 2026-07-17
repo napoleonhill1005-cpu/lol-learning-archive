@@ -8,6 +8,7 @@ export type Pro = {
   riotId: string; // 현재 솔랭 계정 (이름#태그)
   confidence: string;
   alt: string[];
+  realName?: string; // 본명 (예: 이상혁) — 이름 검색용, 확실한 경우에만
 };
 
 export const pros = raw as Pro[];
@@ -28,7 +29,7 @@ export function videosOfPro(p: Pro): Video[] {
   );
 }
 
-/** 검색어가 프로 이름(한/영/계정명)에 걸리면 해당 프로 반환 (갤러리 빠른 링크용) */
+/** 검색어가 프로 이름(한/영/본명/계정명)에 걸리면 해당 프로 반환 (갤러리 빠른 링크용) */
 export function matchPros(query: string): Pro[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
@@ -36,6 +37,22 @@ export function matchPros(query: string): Pro[] {
     (p) =>
       p.pro.toLowerCase().includes(q) ||
       p.proEn.toLowerCase().includes(q) ||
+      (p.realName?.toLowerCase().includes(q) ?? false) ||
       p.riotId.toLowerCase().includes(q),
+  );
+}
+
+/** 활동명/영문/본명/계정명과 정확히 일치하면 해당 프로 — 이름만으로 전적 검색 연결용 */
+export function resolveProByName(query: string): Pro | null {
+  const q = query.trim().toLowerCase();
+  if (!q) return null;
+  return (
+    pros.find(
+      (p) =>
+        p.pro.toLowerCase() === q ||
+        p.proEn.toLowerCase() === q ||
+        p.realName?.toLowerCase() === q ||
+        p.riotId.split("#")[0].toLowerCase() === q,
+    ) ?? null
   );
 }
