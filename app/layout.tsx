@@ -48,6 +48,9 @@ export default function RootLayout({
               <Link href="/pros" className="text-zinc-300 hover:text-amber-300">
                 프로
               </Link>
+              <Link href="/compare" className="text-zinc-300 hover:text-amber-300">
+                비교
+              </Link>
             </nav>
           </div>
         </header>

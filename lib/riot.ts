@@ -80,12 +80,25 @@ const POS_TO_LANE: Record<string, string> = {
   UTILITY: "SUPPORT",
 };
 
+// 개발 키는 초당 20회 제한이 있어 Promise.all 버스트(비교 페이지 ~44호출)가 429를 맞는다.
+// 요청 시작을 최소 간격으로 벌려 초당 ~16회 이하로 유지한다. (캐시 히트도 지연되지만 60ms×호출수 수준)
+let nextSlot = 0;
+const SPACING_MS = 60;
+function throttleDelay(): Promise<void> {
+  const now = Date.now();
+  nextSlot = Math.max(nextSlot + SPACING_MS, now);
+  const wait = nextSlot - now;
+  return wait > 0 ? new Promise((r) => setTimeout(r, wait)) : Promise.resolve();
+}
+
 async function riotFetch(
   url: string,
   init: RequestInit & { next?: { revalidate: number } },
+  retried = false,
 ): Promise<RiotResult<unknown>> {
   const key = process.env.RIOT_API_KEY;
   if (!key) return { ok: false, error: "key_expired" };
+  await throttleDelay();
   let res: Response;
   try {
     res = await fetch(url, {
@@ -97,7 +110,15 @@ async function riotFetch(
   }
   if (res.status === 404) return { ok: false, error: "not_found" };
   if (res.status === 401 || res.status === 403) return { ok: false, error: "key_expired" };
-  if (res.status === 429) return { ok: false, error: "rate_limited" };
+  if (res.status === 429) {
+    // 초 단위 짧은 대기면 1회만 재시도 (2분 윈도우 소진 같은 긴 대기는 즉시 실패)
+    const retryAfter = Number(res.headers.get("retry-after") ?? 0);
+    if (!retried && retryAfter > 0 && retryAfter <= 5) {
+      await new Promise((r) => setTimeout(r, retryAfter * 1000 + 100));
+      return riotFetch(url, init, true);
+    }
+    return { ok: false, error: "rate_limited" };
+  }
   if (!res.ok) return { ok: false, error: "unavailable" };
   return { ok: true, data: await res.json() };
 }
@@ -254,9 +275,11 @@ function toSummary(matchId: string, match: unknown, puuid: string): GameSummary 
 
 export type LaneDiff = { minute: number; goldDiff: number; csDiff: number };
 export type ItemBuildStep = { minute: number; items: number[] };
+export type Checkpoint = { minute: number; gold: number; cs: number };
 
 export type TimelineAnalysis = {
   laneDiffs: LaneDiff[]; // 라인 상대 대비 (상대 없으면 빈 배열)
+  myAt: Checkpoint[]; // 내 절대값 (게임이 해당 분까지 안 가면 그 분은 없음)
   skillOrder: number[]; // 찍은 순서. 1=Q 2=W 3=E 4=R
   itemBuild: ItemBuildStep[];
 };
@@ -288,7 +311,8 @@ const cachedTimelineAnalysis = unstable_cache(
     if (!r.ok) throw new Error(r.error);
     return extractTimeline(r.data, myPuuid, oppPuuid);
   },
-  ["timeline-analysis-v1"],
+  // v2: myAt(절대값 체크포인트) 추가 — 형태가 바뀌면 키를 올려 이전 캐시와 분리
+  ["timeline-analysis-v2"],
   { revalidate: false },
 );
 
@@ -320,6 +344,9 @@ function extractTimeline(
   const myId = puuids.indexOf(myPuuid) + 1;
   const oppId = oppPuuid ? puuids.indexOf(oppPuuid) + 1 : 0;
 
+  const csOf = (f: { minionsKilled?: number; jungleMinionsKilled?: number }) =>
+    Number(f.minionsKilled ?? 0) + Number(f.jungleMinionsKilled ?? 0);
+
   const laneDiffs: LaneDiff[] = [];
   if (myId > 0 && oppId > 0) {
     for (const minute of [5, 10, 15, 20]) {
@@ -327,13 +354,20 @@ function extractTimeline(
       const mine = pf?.[String(myId)];
       const theirs = pf?.[String(oppId)];
       if (!mine || !theirs) continue;
-      const csOf = (f: typeof mine) =>
-        Number(f.minionsKilled ?? 0) + Number(f.jungleMinionsKilled ?? 0);
       laneDiffs.push({
         minute,
         goldDiff: Number(mine.totalGold ?? 0) - Number(theirs.totalGold ?? 0),
         csDiff: csOf(mine) - csOf(theirs),
       });
+    }
+  }
+
+  const myAt: Checkpoint[] = [];
+  if (myId > 0) {
+    for (const minute of [5, 10, 14, 15, 20]) {
+      const mine = frames[minute]?.participantFrames?.[String(myId)];
+      if (!mine) continue;
+      myAt.push({ minute, gold: Number(mine.totalGold ?? 0), cs: csOf(mine) });
     }
   }
 
@@ -360,5 +394,5 @@ function extractTimeline(
     else itemBuild.push({ minute: p.minute, items: [p.itemId] });
   }
 
-  return { laneDiffs, skillOrder, itemBuild };
+  return { laneDiffs, myAt, skillOrder, itemBuild };
 }
