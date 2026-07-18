@@ -29,6 +29,8 @@ import { resolveProByName } from "@/lib/pros";
 import { redirect } from "next/navigation";
 import SearchBox from "../../search-box";
 import { RecordVisit, FavoriteButton } from "./visit-tools";
+import TierGraph from "./tier-graph";
+import { getTierHistory, saveTierSnapshot, tierStoreConfigured } from "@/lib/tier-store";
 
 export const dynamic = "force-dynamic";
 
@@ -143,11 +145,21 @@ export default async function SummonerPage({
   if (!games.ok) return <ErrorBox message={ERROR_MESSAGE[games.error]} />;
 
   // 타임라인(스킬/아이템 빌드, 시간대별 라인전)도 병렬로 — 불변 데이터라 강캐시.
-  const analyses = await Promise.all(
-    games.data.map((g) =>
-      getTimelineAnalysis(g.matchId, g.me.puuid, laneOpponent(g)?.puuid ?? null),
+  // 티어 스냅샷은 검색될 때마다 오늘 1행 적립(같은 날 재검색은 갱신) 후 이력을 읽는다 —
+  // 랭크 조회를 재사용하므로 추가 Riot 호출은 없고, 타임라인이 더 오래 걸려 지연도 없다.
+  const [analyses, tierHistory] = await Promise.all([
+    Promise.all(
+      games.data.map((g) =>
+        getTimelineAnalysis(g.matchId, g.me.puuid, laneOpponent(g)?.puuid ?? null),
+      ),
     ),
-  );
+    (async () => {
+      if (!tierStoreConfigured()) return [];
+      const id = `${account.data.gameName}#${account.data.tagLine}`;
+      if (rank) await saveTierSnapshot(account.data.puuid, id, rank);
+      return getTierHistory(account.data.puuid);
+    })(),
+  ]);
 
   const ctx: IconContext = { champKo, ddVer, spells, runes };
 
@@ -159,6 +171,8 @@ export default async function SummonerPage({
       </Link>
 
       <ProfileHeader account={account.data} rank={rank} games={games.data} ctx={ctx} />
+
+      <TierGraph history={tierHistory} />
 
       {games.data.length === 0 ? (
         <p className="py-12 text-center text-zinc-400">최근 솔로랭크 기록이 없어요.</p>
