@@ -40,19 +40,3 @@ export const LANE_LABEL: Record<string, string> = {
 export function laneLabel(lane: string): string {
   return LANE_LABEL[lane] ?? lane;
 }
-
-/** 데이터에서 고유 필터 옵션들을 뽑아낸다 (프로가 늘어나면 자동 반영). */
-export function uniqueValues<K extends keyof Video>(key: K): string[] {
-  const set = new Set<string>();
-  for (const v of videos) {
-    const val = v[key];
-    if (typeof val === "string" && val) set.add(val);
-  }
-  return Array.from(set).sort();
-}
-
-export function allTags(): string[] {
-  const set = new Set<string>();
-  for (const v of videos) v.tags.forEach((t) => set.add(t));
-  return Array.from(set).sort();
-}

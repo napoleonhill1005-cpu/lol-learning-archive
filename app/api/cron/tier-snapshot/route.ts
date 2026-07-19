@@ -11,8 +11,11 @@ import { saveTierSnapshot, tierStoreConfigured } from "@/lib/tier-store";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// 프로 외에 같이 쌓을 계정
-const EXTRA_TRACKED = ["나폴레온 힐#KR1"];
+// 프로 외에 같이 쌓을 계정 — TRACKED_EXTRA 환경변수(쉼표 구분)로 재정의 가능
+const EXTRA_TRACKED = (process.env.TRACKED_EXTRA ?? "나폴레온 힐#KR1")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;

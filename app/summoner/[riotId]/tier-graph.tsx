@@ -59,7 +59,7 @@ export default function TierGraph({ history }: { history: TierSnapshot[] }) {
   const max = rawMax + span * 0.15;
 
   const x = (i: number) =>
-    PAD.left + (history.length === 1 ? iw / 2 : (i / (history.length - 1)) * iw);
+    PAD.left + (i / (history.length - 1)) * iw;
   const y = (v: number) => PAD.top + (1 - (v - min) / (max - min)) * ih;
 
   // 디비전 경계(100LP 단위) 그리드라인 — 너무 빽빽하면 티어 경계(400)로 성긴다
