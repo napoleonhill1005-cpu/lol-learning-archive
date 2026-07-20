@@ -5,13 +5,20 @@
  */
 import { getAccount, getRecentGames, getRank } from "@/lib/riot";
 import { laneOpponent } from "@/lib/riot-ui";
+import { bearerMatches } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ riotId: string }> },
 ) {
+  // GAMES_API_TOKEN 을 설정하면 Bearer 필수(자동화 쪽에도 같은 값 필요).
+  // 미설정이면 기존대로 공개 — 프록시 레이트리밋만 적용된다.
+  const token = process.env.GAMES_API_TOKEN;
+  if (token && !bearerMatches(req, token)) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
   const { riotId } = await params;
   const decoded = decodeURIComponent(riotId);
   const [name, tag] = decoded.split("#");

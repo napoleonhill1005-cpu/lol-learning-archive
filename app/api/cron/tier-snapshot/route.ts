@@ -7,6 +7,7 @@
 import { pros } from "@/lib/pros";
 import { getAccount, getRank } from "@/lib/riot";
 import { saveTierSnapshot, tierStoreConfigured } from "@/lib/tier-store";
+import { bearerMatches } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,8 +19,7 @@ const EXTRA_TRACKED = (process.env.TRACKED_EXTRA ?? "나폴레온 힐#KR1")
   .filter(Boolean);
 
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!bearerMatches(req, process.env.CRON_SECRET)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   if (!tierStoreConfigured()) {
