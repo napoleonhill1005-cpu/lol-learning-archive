@@ -51,6 +51,9 @@ export default function RootLayout({
               <Link href="/compare" className="text-zinc-300 hover:text-amber-300">
                 비교
               </Link>
+              <Link href="/members" className="text-zinc-300 hover:text-amber-300">
+                멤버
+              </Link>
             </nav>
           </div>
         </header>

@@ -91,5 +91,7 @@ export function proxy(req: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ["/summoner/:path*", "/compare", "/api/games/:path*"],
+  // /members 는 riotId 분기를 타지 않고 page: 레이트리밋만 탄다 —
+  // 접근코드 폼 POST(서버 액션도 같은 경로) 무차별 대입을 30회/분으로 묶는 용도.
+  matcher: ["/summoner/:path*", "/compare", "/api/games/:path*", "/members", "/members/:path*"],
 };

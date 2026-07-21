@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "scout": "node --experimental-strip-types scripts/scout-experts.ts"
+    "scout": "node --experimental-strip-types scripts/scout-experts.ts",
+    "member-code": "node --experimental-strip-types scripts/member-code.ts"
   },
   "dependencies": {
     "next": "16.2.10",

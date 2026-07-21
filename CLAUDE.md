@@ -18,7 +18,7 @@
 
 ## 아키텍처 메모
 
-- **라우트**: 홈(검색+갤러리) · `/pros` · `/pro/[slug]` · `/compare` · `/summoner/[riotId]`(티어 그래프) · `/video/[id]`(장면 플레이어) · `/api/cron/tier-snapshot`(일일 크론).
+- **라우트**: 홈(검색+갤러리) · `/pros` · `/pro/[slug]` · `/compare` · `/summoner/[riotId]`(티어 그래프) · `/video/[id]`(장면 플레이어) · `/members`(멤버 노트 아카이브 — `MEMBER_CODE_SECRET`에서 월별 접근코드 HMAC 파생, `npm run member-code`로 이달 코드 출력) · `/api/cron/tier-snapshot`(일일 크론).
 - **데이터 소스**: 정적 `data/*.json`(videos·pros·scenes) + Riot API(`lib/riot.ts`) + Data Dragon(`lib/ddragon.ts`) + Supabase(`lib/tier-store.ts`·`search-store.ts`).
 - **추천 로직**: `lib/recommend.ts`·`lib/score.ts` — 검색한 소환사의 게임 챔피언·라인과 같은 프로 영상을 매칭.
 - **Supabase**: `supabase/schema.sql`의 `tier_snapshots`. RLS on + 정책 없음 = `service_role`(서버 전용) 키로만 접근.

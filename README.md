@@ -33,16 +33,19 @@ app/
   compare/page.tsx             내 게임 ↔ 프로 비교
   summoner/[riotId]/           소환사 페이지(티어 그래프 SVG · 방문 도구)
   video/[id]/                  영상 페이지 + 장면 플레이어(유튜브 타임스탬프)
+  members/                     멤버 노트 아카이브 (유튜브 멤버십 상위 등급 전용, 월별 접근코드)
   api/cron/tier-snapshot/      일일 크론: 티어 스냅샷 적립
 lib/
   riot.ts · ddragon.ts         외부 API (Riot 전적/티어, 챔피언 메타)
   recommend.ts · score.ts      챔피언·라인 기준 프로 영상 추천/점수
   pros.ts · videos.ts · scenes.ts   data/*.json 로더
+  member-auth.ts · member-notes.ts  멤버 접근코드(HMAC 월별 파생) · 노트 로더
   tier-store.ts · search-store.ts   Supabase 티어/검색 적립
 data/
   videos.json                  프로 솔랭 리플레이 영상 (파이프라인 산출물이 여기로 들어옴)
   pros.json                    프로 → Riot ID 매핑
   scenes.json                  장면(원리) 데이터
+  member-notes.json            멤버 전용 원리 노트 (파이프라인 STEP 2 산출물 재포장)
 supabase/schema.sql            tier_snapshots 테이블 (SQL Editor에서 1회 실행)
 ```
 
